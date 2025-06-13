@@ -10,6 +10,6 @@ class Reservation(Base):
     flight_id = Column(Integer, ForeignKey('vuelos.id'))
     pagada = Column(Boolean, default=False)
 
-    user = relationship("User")
-    pet = relationship("Pet")
-    flight = relationship("Flight")
+    user = relationship("User", backref="reservas")
+    pet = relationship("Pet", backref="reservas")
+    flight = relationship("Flight", backref="reservas")

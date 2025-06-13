@@ -97,7 +97,7 @@ async def reserve_from_list(
         "result": msg
     })
 
-# Página para comprar una reserva
+# Página para ver y comprar reservas
 @app.get("/my_reservations")
 async def my_reservations(request: Request, db: AsyncSession = Depends(get_db)):
     reservas = (await db.execute(select(Reservation))).scalars().all()
@@ -116,5 +116,89 @@ async def buy_reservation(
         "result": mensaje
     })
 
-# Gestión usuarios y mascotas igual que antes...
-# (Puedes seguir usando tu sección /manage y los endpoints CRUD)
+# Gestión usuarios y mascotas (listar y CRUD completo)
+@app.get("/manage")
+async def manage(request: Request, db: AsyncSession = Depends(get_db)):
+    users = (await db.execute(select(User))).scalars().all()
+    pets = (await db.execute(select(Pet))).scalars().all()
+    return templates.TemplateResponse("manage.html", {"request": request, "users": users, "pets": pets})
+
+# CRUD USUARIOS
+@app.post("/user/find")
+async def find_user(
+    request: Request,
+    documento: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    user = await find_user_doc(db, documento)
+    users = [user] if user else []
+    pets = []
+    return templates.TemplateResponse("manage.html", {
+        "request": request,
+        "users": users,
+        "pets": pets,
+        "find_result": "Usuario encontrado" if user else "Usuario no encontrado"
+    })
+
+@app.post("/user/update")
+async def update_user_post(
+    request: Request,
+    id: int = Form(...),
+    nombre: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    await update_user(db, id, {"nombre": nombre})
+    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/user/delete")
+async def delete_user_post(
+    request: Request,
+    id: int = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    await delete_user(db, id)
+    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+
+# CRUD MASCOTAS
+@app.post("/pet/find")
+async def find_pet(
+    request: Request,
+    id: int = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    pet = await find_pet_id(db, id)
+    pets = [pet] if pet else []
+    users = []
+    return templates.TemplateResponse("manage.html", {
+        "request": request,
+        "users": users,
+        "pets": pets,
+        "find_result": "Mascota encontrada" if pet else "Mascota no encontrada"
+    })
+
+@app.post("/pet/update")
+async def update_pet_post(
+    request: Request,
+    id: int = Form(...),
+    nombre: str = Form(...),
+    duenio: str = Form(...),
+    tipo_mascota: str = Form(...),
+    raza: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    await update_pet(db, id, {
+        "nombre": nombre,
+        "duenio": duenio,
+        "tipo_mascota": tipo_mascota,
+        "raza": raza
+    })
+    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/pet/delete")
+async def delete_pet_post(
+    request: Request,
+    id: int = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    await delete_pet(db, id)
+    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)

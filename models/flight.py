@@ -1,7 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, Boolean
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from models.base import Base
 
 class Flight(Base):
     __tablename__ = "vuelos"

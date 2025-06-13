@@ -3,14 +3,8 @@ from sqlalchemy.future import select
 from models.flight import Flight
 from models.reservation import Reservation
 
-async def list_available_flights(db: AsyncSession, origen=None, destino=None, fecha=None):
+async def list_available_flights(db: AsyncSession):
     query = select(Flight).where(Flight.disponible == True)
-    if origen:
-        query = query.where(Flight.origen == origen)
-    if destino:
-        query = query.where(Flight.destino == destino)
-    if fecha:
-        query = query.where(Flight.fecha == fecha)
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -18,7 +12,6 @@ async def reserve_flight(db: AsyncSession, user_id: int, pet_id: int, flight_id:
     flight = await db.get(Flight, flight_id)
     if not flight or not flight.disponible or flight.asientos <= 0:
         return "No disponible"
-    # Crear reserva
     reserva = Reservation(user_id=user_id, pet_id=pet_id, flight_id=flight_id, pagada=False)
     flight.asientos -= 1
     if flight.asientos == 0:
