@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Vuelos disponibles</h2>
-<table border="1">
+<h2>Consultar Vuelos Disponibles</h2>
+<form>
+    Origen: <input type="text" name="origen">
+    Destino: <input type="text" name="destino">
+    Fecha: <input type="date" name="fecha">
+    <button type="submit">Buscar</button>
+</form>
+<table>
     <tr>
-        <th>ID</th>
-        <th>Origen</th>
-        <th>Destino</th>
-        <th>Fecha</th>
-        <th>Disponible</th>
-        <th>Asientos</th>
+        <th>ID</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Disponible</th><th>Asientos</th>
     </tr>
     {% for f in flights %}
     <tr>

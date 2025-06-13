@@ -5,9 +5,7 @@
     ID Usuario: <input type="number" name="user_id" required><br>
     ID Mascota: <input type="number" name="pet_id" required><br>
     ID Vuelo: <input type="number" name="flight_id" required><br>
-    <input type="submit" value="Reservar">
+    <button type="submit">Reservar</button>
 </form>
-{% if result %}
-    <p>{{ result }}</p>
-{% endif %}
+{% if result %}<p>{{ result }}</p>{% endif %}
 {% endblock %}

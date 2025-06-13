@@ -3,11 +3,13 @@ from fastapi import FastAPI, Request, Depends, Form, status
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.future import select
 from dotenv import load_dotenv
 
 from models.user import User
 from models.pet import Pet
 from models.flight import Flight
+from models.reservation import Reservation
 
 from operations.operations_user import (
     create_user, find_user_doc, update_user, delete_user
@@ -18,8 +20,6 @@ from operations.operations_pet import (
 from operations.operations_flight import (
     list_available_flights, reserve_flight, buy_flight
 )
-
-from sqlalchemy.future import select
 
 load_dotenv()
 DATABASE_URL = (
@@ -75,10 +75,16 @@ async def register_pet_post(
     await create_pet(db, pet)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-# Consultar vuelos disponibles
+# Consultar vuelos disponibles (con filtros)
 @app.get("/flights")
-async def list_flights(request: Request, db: AsyncSession = Depends(get_db)):
-    flights = await list_available_flights(db)
+async def list_flights(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    origen: str = None,
+    destino: str = None,
+    fecha: str = None
+):
+    flights = await list_available_flights(db, origen, destino, fecha)
     return templates.TemplateResponse("list_flights.html", {"request": request, "flights": flights})
 
 # Reservar vuelo
@@ -94,10 +100,14 @@ async def reserve_flight_post(
     flight_id: int = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await reserve_flight(db, user_id, pet_id, flight_id)
+    reserva = await reserve_flight(db, user_id, pet_id, flight_id)
+    if isinstance(reserva, Reservation):
+        msg = f"Reserva exitosa. ID: {reserva.id}"
+    else:
+        msg = reserva
     return templates.TemplateResponse("reserve_flight.html", {
         "request": request,
-        "result": result
+        "result": msg
     })
 
 # Comprar vuelo asociado a reserva
@@ -112,12 +122,16 @@ async def buy_flight_post(
     db: AsyncSession = Depends(get_db)
 ):
     result = await buy_flight(db, reserva_id)
+    if isinstance(result, Reservation) and result.pagada:
+        mensaje = "Compra realizada"
+    else:
+        mensaje = result
     return templates.TemplateResponse("buy_flight.html", {
         "request": request,
-        "result": result
+        "result": mensaje
     })
 
-# Gestión usuarios y mascotas
+# Gestión usuarios y mascotas (listar y CRUD completo)
 @app.get("/manage")
 async def manage(request: Request, db: AsyncSession = Depends(get_db)):
     users = (await db.execute(select(User))).scalars().all()
@@ -126,11 +140,20 @@ async def manage(request: Request, db: AsyncSession = Depends(get_db)):
 
 # CRUD USUARIOS
 @app.post("/user/find")
-async def find_user(request: Request, documento: str = Form(...), db: AsyncSession = Depends(get_db)):
+async def find_user(
+    request: Request,
+    documento: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
     user = await find_user_doc(db, documento)
     users = [user] if user else []
     pets = []
-    return templates.TemplateResponse("manage.html", {"request": request, "users": users, "pets": pets, "find_result": "Usuario encontrado" if user else "Usuario no encontrado"})
+    return templates.TemplateResponse("manage.html", {
+        "request": request,
+        "users": users,
+        "pets": pets,
+        "find_result": "Usuario encontrado" if user else "Usuario no encontrado"
+    })
 
 @app.post("/user/update")
 async def update_user_post(
@@ -139,7 +162,7 @@ async def update_user_post(
     nombre: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
-    user = await update_user(db, id, {"nombre": nombre})
+    await update_user(db, id, {"nombre": nombre})
     return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/user/delete")
@@ -153,11 +176,20 @@ async def delete_user_post(
 
 # CRUD MASCOTAS
 @app.post("/pet/find")
-async def find_pet(request: Request, id: int = Form(...), db: AsyncSession = Depends(get_db)):
+async def find_pet(
+    request: Request,
+    id: int = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
     pet = await find_pet_id(db, id)
     pets = [pet] if pet else []
     users = []
-    return templates.TemplateResponse("manage.html", {"request": request, "users": users, "pets": pets, "find_result": "Mascota encontrada" if pet else "Mascota no encontrada"})
+    return templates.TemplateResponse("manage.html", {
+        "request": request,
+        "users": users,
+        "pets": pets,
+        "find_result": "Mascota encontrada" if pet else "Mascota no encontrada"
+    })
 
 @app.post("/pet/update")
 async def update_pet_post(
@@ -169,7 +201,12 @@ async def update_pet_post(
     raza: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
-    pet = await update_pet(db, id, {"nombre": nombre, "duenio": duenio, "tipo_mascota": tipo_mascota, "raza": raza})
+    await update_pet(db, id, {
+        "nombre": nombre,
+        "duenio": duenio,
+        "tipo_mascota": tipo_mascota,
+        "raza": raza
+    })
     return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/pet/delete")

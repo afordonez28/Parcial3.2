@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Vuelos y Mascotas</title>
+    <title>Gestión de Vuelos y Mascotas</title>
+    <style>
+    body { font-family: Arial; padding: 20px; }
+    h2 { margin-top: 30px; }
+    input, button, select { margin: 5px; }
+    table { border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px;}
+    </style>
 </head>
 <body>
-    <h1>Bienvenido a la Reserva de Vuelos y Mascotas</h1>
+    <h1>Gestión de Vuelos y Mascotas</h1>
     <nav>
+        <a href="/">Inicio</a> |
         <a href="/register_user">Registrar Usuario</a> |
         <a href="/register_pet">Registrar Mascota</a> |
         <a href="/flights">Consultar Vuelos</a> |
         <a href="/reserve_flight">Reservar Vuelo</a> |
         <a href="/buy_flight">Comprar Vuelo</a> |
-        <a href="/manage">Gestionar</a>
+        <a href="/manage">Gestionar Usuarios/Mascotas</a>
     </nav>
     <hr>
     {% block content %}{% endblock %}
