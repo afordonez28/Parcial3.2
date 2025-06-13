@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Comprar Vuelo</h2>
+<form method="post">
+    ID Reserva: <input type="number" name="reserva_id" required><br>
+    <input type="submit" value="Comprar">
+</form>
+{% if result %}
+    <p>{{ result }}</p>
+{% endif %}
+{% endblock %}

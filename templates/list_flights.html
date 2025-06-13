@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Vuelos Disponibles</h2>
+<table border="1">
+    <tr>
+        <th>Origen</th>
+        <th>Destino</th>
+        <th>Fecha</th>
+        <th>Asientos</th>
+        <th>Disponible</th>
+    </tr>
+    {% for flight in flights %}
+    <tr>
+        <td>{{ flight.origen }}</td>
+        <td>{{ flight.destino }}</td>
+        <td>{{ flight.fecha }}</td>
+        <td>{{ flight.asientos }}</td>
+        <td>{{ "Sí" if flight.disponible else "No" }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

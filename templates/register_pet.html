@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Registrar Mascota</h2>
+<form method="post">
+    Nombre: <input type="text" name="nombre" required><br>
+    Dueño: <input type="text" name="duenio" required><br>
+    Tipo de Mascota: <input type="text" name="tipo_mascota" required><br>
+    Raza: <input type="text" name="raza" required><br>
+    <input type="submit" value="Registrar">
+</form>
+{% endblock %}
