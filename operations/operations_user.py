@@ -4,9 +4,13 @@ from models.user import User
 
 async def create_user(db: AsyncSession, user: User):
     db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
+    try:
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        await db.rollback()
+        return None
 
 async def find_user_doc(db: AsyncSession, documento: str):
     result = await db.execute(select(User).where(User.documento == documento))
@@ -25,7 +29,8 @@ async def update_user(db: AsyncSession, id: int, datos_actualizados: dict):
 
 async def delete_user(db: AsyncSession, id: int):
     user = await db.get(User, id)
-    if user:
-        await db.delete(user)
-        await db.commit()
+    if not user:
+        return None
+    await db.delete(user)
+    await db.commit()
     return user
