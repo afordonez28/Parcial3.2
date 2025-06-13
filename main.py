@@ -38,13 +38,13 @@ async def get_db():
     async with async_session() as session:
         yield session
 
+# Poblado automático de vuelos en el arranque si la tabla está vacía
 @app.on_event("startup")
 async def populate_flights():
     async with async_session() as db:
         result = await db.execute(select(Flight))
         flights = result.scalars().all()
         if not flights:
-            # Si la tabla está vacía, agregar muchos vuelos de ejemplo
             vuelos = [
                 Flight(origen="Bogotá", destino="Medellín", fecha=datetime.date(2025, 7, 10), disponible=True, asientos=12),
                 Flight(origen="Medellín", destino="Bogotá", fecha=datetime.date(2025, 7, 13), disponible=True, asientos=9),
@@ -74,156 +74,69 @@ async def populate_flights():
 async def root(request: Request):
     return templates.TemplateResponse("base.html", {"request": request})
 
-@app.get("/register_user")
-async def register_user_form(request: Request):
-    return templates.TemplateResponse("register_user.html", {"request": request})
-
-@app.post("/register_user")
-async def register_user_post(
-    request: Request,
-    documento: str = Form(...),
-    nombre: str = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    user = User(documento=documento, nombre=nombre)
-    await create_user(db, user)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-@app.get("/register_pet")
-async def register_pet_form(request: Request):
-    return templates.TemplateResponse("register_pet.html", {"request": request})
-
-@app.post("/register_pet")
-async def register_pet_post(
-    request: Request,
-    nombre: str = Form(...),
-    duenio: str = Form(...),
-    tipo_mascota: str = Form(...),
-    raza: str = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    pet = Pet(nombre=nombre, duenio=duenio, tipo_mascota=tipo_mascota, raza=raza)
-    await create_pet(db, pet)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-@app.get("/flights")
-async def list_flights(request: Request, db: AsyncSession = Depends(get_db)):
-    flights = await list_available_flights(db)
-    return templates.TemplateResponse("list_flights.html", {"request": request, "flights": flights})
-
-@app.post("/reserve_from_list")
-async def reserve_from_list(
-    request: Request,
-    flight_id: int = Form(...),
-    user_id: int = Form(...),
-    pet_id: int = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    reserva = await reserve_flight(db, user_id, pet_id, flight_id)
-    msg = f"Reserva exitosa. ID: {reserva.id}" if isinstance(reserva, Reservation) else reserva
-    return templates.TemplateResponse("reserve_result.html", {
-        "request": request,
-        "result": msg
-    })
-
-@app.get("/my_reservations")
-async def my_reservations(request: Request, db: AsyncSession = Depends(get_db)):
-    reservas = (await db.execute(select(Reservation))).scalars().all()
-    return templates.TemplateResponse("my_reservations.html", {"request": request, "reservas": reservas})
-
-@app.post("/buy_reservation")
-async def buy_reservation(
-    request: Request,
-    reserva_id: int = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    result = await buy_flight(db, reserva_id)
-    mensaje = "Compra realizada" if isinstance(result, Reservation) and result.pagada else result
-    return templates.TemplateResponse("buy_result.html", {
-        "request": request,
-        "result": mensaje
-    })
-
-@app.get("/manage")
-async def manage(request: Request, db: AsyncSession = Depends(get_db)):
+# ---- CONTROL DE USUARIOS Y MASCOTAS ----
+@app.get("/control")
+async def control(request: Request, db: AsyncSession = Depends(get_db)):
     users = (await db.execute(select(User))).scalars().all()
     pets = (await db.execute(select(Pet))).scalars().all()
-    return templates.TemplateResponse("manage.html", {"request": request, "users": users, "pets": pets})
+    return templates.TemplateResponse("control.html", {"request": request, "users": users, "pets": pets})
 
-@app.post("/user/find")
-async def find_user(
-    request: Request,
-    documento: str = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    user = await find_user_doc(db, documento)
-    users = [user] if user else []
-    pets = []
-    return templates.TemplateResponse("manage.html", {
-        "request": request,
-        "users": users,
-        "pets": pets,
-        "find_result": "Usuario encontrado" if user else "Usuario no encontrado"
-    })
+# CRUD USUARIOS
+@app.post("/user/create")
+async def create_user_post(request: Request, documento: str = Form(...), nombre: str = Form(...), db: AsyncSession = Depends(get_db)):
+    user = User(documento=documento, nombre=nombre)
+    await create_user(db, user)
+    return RedirectResponse(url="/control", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/user/update")
-async def update_user_post(
-    request: Request,
-    id: int = Form(...),
-    nombre: str = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
+async def update_user_post(request: Request, id: int = Form(...), nombre: str = Form(...), db: AsyncSession = Depends(get_db)):
     await update_user(db, id, {"nombre": nombre})
-    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/control", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/user/delete")
-async def delete_user_post(
-    request: Request,
-    id: int = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
+async def delete_user_post(request: Request, id: int = Form(...), db: AsyncSession = Depends(get_db)):
     await delete_user(db, id)
-    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/control", status_code=status.HTTP_303_SEE_OTHER)
 
-@app.post("/pet/find")
-async def find_pet(
-    request: Request,
-    id: int = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    pet = await find_pet_id(db, id)
-    pets = [pet] if pet else []
-    users = []
-    return templates.TemplateResponse("manage.html", {
-        "request": request,
-        "users": users,
-        "pets": pets,
-        "find_result": "Mascota encontrada" if pet else "Mascota no encontrada"
-    })
+# CRUD MASCOTAS
+@app.post("/pet/create")
+async def create_pet_post(request: Request, nombre: str = Form(...), duenio: str = Form(...), tipo_mascota: str = Form(...), raza: str = Form(...), db: AsyncSession = Depends(get_db)):
+    pet = Pet(nombre=nombre, duenio=duenio, tipo_mascota=tipo_mascota, raza=raza)
+    await create_pet(db, pet)
+    return RedirectResponse(url="/control", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/pet/update")
-async def update_pet_post(
-    request: Request,
-    id: int = Form(...),
-    nombre: str = Form(...),
-    duenio: str = Form(...),
-    tipo_mascota: str = Form(...),
-    raza: str = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
-    await update_pet(db, id, {
-        "nombre": nombre,
-        "duenio": duenio,
-        "tipo_mascota": tipo_mascota,
-        "raza": raza
-    })
-    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+async def update_pet_post(request: Request, id: int = Form(...), nombre: str = Form(...), duenio: str = Form(...), tipo_mascota: str = Form(...), raza: str = Form(...), db: AsyncSession = Depends(get_db)):
+    await update_pet(db, id, {"nombre": nombre, "duenio": duenio, "tipo_mascota": tipo_mascota, "raza": raza})
+    return RedirectResponse(url="/control", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/pet/delete")
-async def delete_pet_post(
-    request: Request,
-    id: int = Form(...),
-    db: AsyncSession = Depends(get_db)
-):
+async def delete_pet_post(request: Request, id: int = Form(...), db: AsyncSession = Depends(get_db)):
     await delete_pet(db, id)
-    return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/control", status_code=status.HTTP_303_SEE_OTHER)
+
+# ---- CONSULTA DE VUELOS ----
+@app.get("/flights")
+async def list_flights(request: Request, db: AsyncSession = Depends(get_db), origen: str = "", destino: str = "", fecha: str = ""):
+    flights = await list_available_flights(db, origen or None, destino or None, fecha or None)
+    return templates.TemplateResponse("list_flights.html", {"request": request, "flights": flights, "origen": origen, "destino": destino, "fecha": fecha})
+
+# ---- RESERVAR Y COMPRAR ----
+@app.get("/reserve_buy")
+async def reserve_buy(request: Request, db: AsyncSession = Depends(get_db)):
+    reservas = (await db.execute(select(Reservation))).scalars().all()
+    return templates.TemplateResponse("reserve_buy.html", {"request": request, "reservas": reservas})
+
+@app.post("/reserve")
+async def reserve_post(request: Request, user_id: int = Form(...), pet_id: int = Form(...), flight_id: int = Form(...), db: AsyncSession = Depends(get_db)):
+    reserva = await reserve_flight(db, user_id, pet_id, flight_id)
+    msg = f"Reserva exitosa. ID: {reserva.id}" if hasattr(reserva, "id") else reserva
+    reservas = (await db.execute(select(Reservation))).scalars().all()
+    return templates.TemplateResponse("reserve_buy.html", {"request": request, "reservas": reservas, "msg": msg})
+
+@app.post("/buy")
+async def buy_post(request: Request, reserva_id: int = Form(...), db: AsyncSession = Depends(get_db)):
+    result = await buy_flight(db, reserva_id)
+    msg = "Compra realizada" if hasattr(result, "pagada") and result.pagada else result
+    reservas = (await db.execute(select(Reservation))).scalars().all()
+    return templates.TemplateResponse("reserve_buy.html", {"request": request, "reservas": reservas, "msg": msg})

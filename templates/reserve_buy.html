@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Reservar un Vuelo</h2>
+<form method="post" action="/reserve">
+    ID Usuario: <input type="number" name="user_id" required>
+    ID Mascota: <input type="number" name="pet_id" required>
+    ID Vuelo: <input type="number" name="flight_id" required>
+    <button type="submit">Reservar</button>
+</form>
+{% if msg %}<p>{{ msg }}</p>{% endif %}
+<h2>Mis Reservas</h2>
+<table>
+    <tr>
+        <th>ID Reserva</th><th>ID Usuario</th><th>ID Mascota</th><th>ID Vuelo</th><th>Pagada</th><th>Comprar</th>
+    </tr>
+    {% for r in reservas %}
+    <tr>
+        <td>{{ r.id }}</td>
+        <td>{{ r.user_id }}</td>
+        <td>{{ r.pet_id }}</td>
+        <td>{{ r.flight_id }}</td>
+        <td>{{ "Sí" if r.pagada else "No" }}</td>
+        <td>
+            {% if not r.pagada %}
+            <form method="post" action="/buy">
+                <input type="hidden" name="reserva_id" value="{{ r.id }}">
+                <button type="submit">Comprar</button>
+            </form>
+            {% else %}
+            Ya pagada
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

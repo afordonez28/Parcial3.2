@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Vuelos disponibles</h2>
+<h2>Consultar Vuelos Disponibles</h2>
+<form>
+    Origen: <input name="origen" value="{{ origen }}">
+    Destino: <input name="destino" value="{{ destino }}">
+    Fecha: <input type="date" name="fecha" value="{{ fecha }}">
+    <button type="submit">Filtrar</button>
+</form>
 <table>
     <tr>
-        <th>ID</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Disponible</th><th>Asientos</th><th>Reservar</th>
+        <th>ID</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Disponible</th><th>Asientos</th>
     </tr>
     {% for f in flights %}
     <tr>
@@ -13,18 +19,6 @@
         <td>{{ f.fecha }}</td>
         <td>{{ "Sí" if f.disponible else "No" }}</td>
         <td>{{ f.asientos }}</td>
-        <td>
-            {% if f.disponible and f.asientos > 0 %}
-            <form method="post" action="/reserve_from_list" style="display:inline;">
-                <input type="hidden" name="flight_id" value="{{ f.id }}">
-                Usuario: <input type="number" name="user_id" required style="width:60px">
-                Mascota: <input type="number" name="pet_id" required style="width:60px">
-                <button type="submit">Reservar</button>
-            </form>
-            {% else %}
-            No disponible
-            {% endif %}
-        </td>
     </tr>
     {% endfor %}
 </table>
