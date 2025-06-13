@@ -3,6 +3,7 @@ from sqlalchemy.future import select
 from models.flight import Flight
 from models.reservation import Reservation
 
+# operations/operations_flight.py
 async def list_available_flights(db: AsyncSession):
     query = select(Flight).where(Flight.disponible == True)
     result = await db.execute(query)

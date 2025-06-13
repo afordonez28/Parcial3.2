@@ -1,4 +1,5 @@
 import os
+import datetime
 from fastapi import FastAPI, Request, Depends, Form, status
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
@@ -37,11 +38,42 @@ async def get_db():
     async with async_session() as session:
         yield session
 
+@app.on_event("startup")
+async def populate_flights():
+    async with async_session() as db:
+        result = await db.execute(select(Flight))
+        flights = result.scalars().all()
+        if not flights:
+            # Si la tabla está vacía, agregar muchos vuelos de ejemplo
+            vuelos = [
+                Flight(origen="Bogotá", destino="Medellín", fecha=datetime.date(2025, 7, 10), disponible=True, asientos=12),
+                Flight(origen="Medellín", destino="Bogotá", fecha=datetime.date(2025, 7, 13), disponible=True, asientos=9),
+                Flight(origen="Cali", destino="Cartagena", fecha=datetime.date(2025, 7, 15), disponible=True, asientos=20),
+                Flight(origen="Barranquilla", destino="Leticia", fecha=datetime.date(2025, 7, 16), disponible=True, asientos=3),
+                Flight(origen="Bogotá", destino="Cali", fecha=datetime.date(2025, 7, 17), disponible=True, asientos=18),
+                Flight(origen="Cali", destino="Bogotá", fecha=datetime.date(2025, 7, 18), disponible=True, asientos=13),
+                Flight(origen="Medellín", destino="Cartagena", fecha=datetime.date(2025, 7, 22), disponible=True, asientos=15),
+                Flight(origen="Cartagena", destino="Bogotá", fecha=datetime.date(2025, 7, 30), disponible=True, asientos=8),
+                Flight(origen="Bogotá", destino="Barranquilla", fecha=datetime.date(2025, 8, 2), disponible=True, asientos=17),
+                Flight(origen="Barranquilla", destino="Cali", fecha=datetime.date(2025, 8, 8), disponible=True, asientos=6),
+                Flight(origen="Bogotá", destino="Leticia", fecha=datetime.date(2025, 8, 20), disponible=True, asientos=10),
+                Flight(origen="Leticia", destino="Bogotá", fecha=datetime.date(2025, 8, 25), disponible=True, asientos=9),
+                Flight(origen="Cali", destino="Medellín", fecha=datetime.date(2025, 8, 28), disponible=True, asientos=14),
+                Flight(origen="Medellín", destino="Cali", fecha=datetime.date(2025, 9, 1), disponible=True, asientos=11),
+                Flight(origen="Cartagena", destino="Barranquilla", fecha=datetime.date(2025, 9, 4), disponible=True, asientos=5),
+                Flight(origen="Barranquilla", destino="Medellín", fecha=datetime.date(2025, 9, 10), disponible=True, asientos=7),
+                Flight(origen="Leticia", destino="Cartagena", fecha=datetime.date(2025, 9, 15), disponible=True, asientos=4),
+                Flight(origen="Cali", destino="Leticia", fecha=datetime.date(2025, 9, 20), disponible=True, asientos=8),
+                Flight(origen="Medellín", destino="Barranquilla", fecha=datetime.date(2025, 9, 25), disponible=True, asientos=6),
+                Flight(origen="Bogotá", destino="Cartagena", fecha=datetime.date(2025, 10, 1), disponible=True, asientos=12),
+            ]
+            db.add_all(vuelos)
+            await db.commit()
+
 @app.get("/")
 async def root(request: Request):
     return templates.TemplateResponse("base.html", {"request": request})
 
-# Registro de usuario
 @app.get("/register_user")
 async def register_user_form(request: Request):
     return templates.TemplateResponse("register_user.html", {"request": request})
@@ -57,7 +89,6 @@ async def register_user_post(
     await create_user(db, user)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-# Registro de mascota
 @app.get("/register_pet")
 async def register_pet_form(request: Request):
     return templates.TemplateResponse("register_pet.html", {"request": request})
@@ -75,13 +106,11 @@ async def register_pet_post(
     await create_pet(db, pet)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-# Listar vuelos disponibles
 @app.get("/flights")
 async def list_flights(request: Request, db: AsyncSession = Depends(get_db)):
     flights = await list_available_flights(db)
     return templates.TemplateResponse("list_flights.html", {"request": request, "flights": flights})
 
-# Reservar vuelo desde la lista
 @app.post("/reserve_from_list")
 async def reserve_from_list(
     request: Request,
@@ -97,7 +126,6 @@ async def reserve_from_list(
         "result": msg
     })
 
-# Página para ver y comprar reservas
 @app.get("/my_reservations")
 async def my_reservations(request: Request, db: AsyncSession = Depends(get_db)):
     reservas = (await db.execute(select(Reservation))).scalars().all()
@@ -116,14 +144,12 @@ async def buy_reservation(
         "result": mensaje
     })
 
-# Gestión usuarios y mascotas (listar y CRUD completo)
 @app.get("/manage")
 async def manage(request: Request, db: AsyncSession = Depends(get_db)):
     users = (await db.execute(select(User))).scalars().all()
     pets = (await db.execute(select(Pet))).scalars().all()
     return templates.TemplateResponse("manage.html", {"request": request, "users": users, "pets": pets})
 
-# CRUD USUARIOS
 @app.post("/user/find")
 async def find_user(
     request: Request,
@@ -159,7 +185,6 @@ async def delete_user_post(
     await delete_user(db, id)
     return RedirectResponse(url="/manage", status_code=status.HTTP_303_SEE_OTHER)
 
-# CRUD MASCOTAS
 @app.post("/pet/find")
 async def find_pet(
     request: Request,
