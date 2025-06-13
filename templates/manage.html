@@ -1,10 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
+<h2>Gestión de usuarios</h2>
+<form method="post" action="/user/find">
+    <input type="text" name="documento" placeholder="Documento usuario">
+    <button type="submit">Buscar usuario</button>
+</form>
+<table border="1">
+    <tr>
+        <th>ID</th><th>Documento</th><th>Nombre</th><th>Acciones</th>
+    </tr>
+    {% for u in users %}
+    <tr>
+        <form method="post" action="/user/update">
+            <td>{{ u.id }}<input type="hidden" name="id" value="{{ u.id }}"></td>
+            <td>{{ u.documento }}</td>
+            <td><input type="text" name="nombre" value="{{ u.nombre }}"></td>
+            <td>
+                <button type="submit">Actualizar</button>
+        </form>
+        <form method="post" action="/user/delete" style="display:inline;">
+            <input type="hidden" name="id" value="{{ u.id }}">
+            <button type="submit">Eliminar</button>
+        </form>
+            </td>
+    </tr>
+    {% endfor %}
+</table>
 
-</body>
-</html>
+<h2>Gestión de mascotas</h2>
+<form method="post" action="/pet/find">
+    <input type="number" name="id" placeholder="ID Mascota">
+    <button type="submit">Buscar mascota</button>
+</form>
+<table border="1">
+    <tr>
+        <th>ID</th><th>Nombre</th><th>Dueño</th><th>Tipo</th><th>Raza</th><th>Acciones</th>
+    </tr>
+    {% for p in pets %}
+    <tr>
+        <form method="post" action="/pet/update">
+            <td>{{ p.id }}<input type="hidden" name="id" value="{{ p.id }}"></td>
+            <td><input type="text" name="nombre" value="{{ p.nombre }}"></td>
+            <td><input type="text" name="duenio" value="{{ p.duenio }}"></td>
+            <td><input type="text" name="tipo_mascota" value="{{ p.tipo_mascota }}"></td>
+            <td><input type="text" name="raza" value="{{ p.raza }}"></td>
+            <td>
+                <button type="submit">Actualizar</button>
+        </form>
+        <form method="post" action="/pet/delete" style="display:inline;">
+            <input type="hidden" name="id" value="{{ p.id }}">
+            <button type="submit">Eliminar</button>
+        </form>
+            </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if find_result %}
+    <p>{{ find_result }}</p>
+{% endif %}
+{% endblock %}
